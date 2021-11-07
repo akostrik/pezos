@@ -2,8 +2,9 @@ package blockchain;
 import java.util.Arrays;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
-import tools.Utils;
-import tools.WrongTagFromSocketException;
+
+import pezos.Utils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -53,11 +54,11 @@ public class Block {
 		return outputStream.toByteArray();
 	}
 	
-	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException, WrongTagFromSocketException{
+	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException {
 		verifyErrors(out,in,pk,sk,null);
 	}
 	
-	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk, State state) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException, WrongTagFromSocketException{
+	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk, State state) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException {
 		System.out.print("I verify state hash     ");
 		if(state==null)
 			state = Utils.getState(level,out,in);

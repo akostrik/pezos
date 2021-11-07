@@ -7,33 +7,34 @@ import java.util.Arrays;
 
 import org.apache.commons.codec.DecoderException;
 
-import tools.Utils;
+import pezos.Utils;
 
 public class State {
 
-	private byte[] dictateurPubkey;
+	private byte[] dictateurPk;
 	private byte[] predecessor_timestamp;
 	private byte[] nbBytesInNextSequence;
 	private byte[] accountsAsBytes;
 	private byte[] stateAsBytes;
 	private byte[] hashCurrentState;
 	private ArrayList<Account> listAccounts;
+	private int    level;
 	
-	public State(byte[] receivedMessage) throws IOException {
+	public State(byte[] receivedMessage, int level) throws IOException {
 		listAccounts = new ArrayList<Account>();
-		this.stateAsBytes = Arrays.copyOfRange(receivedMessage,2,receivedMessage.length);
-		//byte[] tag = Arrays.copyOfRange(receivedMessage,0,2);
-		this.dictateurPubkey = Arrays.copyOfRange(receivedMessage,2,34);
+		this.stateAsBytes          = Arrays.copyOfRange(receivedMessage,2,receivedMessage.length);
+		this.dictateurPk           = Arrays.copyOfRange(receivedMessage,2,34);
 		this.predecessor_timestamp = Arrays.copyOfRange(receivedMessage,34,42);
 		this.nbBytesInNextSequence = Arrays.copyOfRange(receivedMessage,42,46);
-		this.accountsAsBytes = Arrays.copyOfRange(receivedMessage,46,receivedMessage.length);
+		this.accountsAsBytes       = Arrays.copyOfRange(receivedMessage,46,receivedMessage.length);
 		extractAccounts(accountsAsBytes);
         this.hashCurrentState = Utils.hash(this.encodeToBytes(),32);
+        this.level=level;
 	}
 	
 	public byte[] encodeToBytes() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		outputStream.write(dictateurPubkey);
+		outputStream.write(dictateurPk);
 		outputStream.write(predecessor_timestamp); 
 		outputStream.write(nbBytesInNextSequence);
 		outputStream.write(accountsAsBytes);
@@ -70,8 +71,8 @@ public class State {
 		return null;
 	}
 
-	public byte[] getDictPK() {
-		return this.dictateurPubkey;
+	public byte[] getDictatorPk() {
+		return this.dictateurPk;
 	}
 
 	public String toString() {
@@ -79,7 +80,8 @@ public class State {
 		for(Account account : listAccounts)
 			accounts +="    "+account.toString()+"\n";
 		return "STATE :"+
-				"\n  dictateurPubkey       = "+Utils.toHexString(dictateurPubkey)+
+				"\n  level                 = "+level+
+				"\n  dictateurPubkey       = "+Utils.toHexString(dictateurPk)+
   			    "\n  predecessor_timestamp = "+(Utils.toDateAsString(Utils.toLong(predecessor_timestamp))+" (or "+Utils.toLong(predecessor_timestamp)+" seconds, or "+Utils.toHexString(predecessor_timestamp)+" as Hex)")+
 				"\n  nbBytesInNextSequence = "+Utils.toInt(nbBytesInNextSequence)+" (or "+Utils.toHexString(nbBytesInNextSequence)+" as Hex) ("+(Utils.toInt(nbBytesInNextSequence)/52)+" accounts)"+
 			    "\n  hash of this state    = "+Utils.toHexString(hashCurrentState)+

@@ -14,29 +14,29 @@ import org.apache.commons.codec.DecoderException;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 
-import tools.Utils;
-
 public class Connection {
 	
-	private DataOutputStream out;
-	private DataInputStream  in;
+	private DataOutputStream out    = null;
+	private DataInputStream  in     = null;
+	private Socket    socket = null; 
 	
-	public Connection(String hostname, int port, String pkString, String skString) throws UnknownHostException, IOException, DecoderException, DataLengthException, CryptoException, InterruptedException, SignatureException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
-			Socket socket = new Socket(hostname, port); 
-			this.in	 = new DataInputStream (new BufferedInputStream (socket.getInputStream ()));
-			this.out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-						
-			byte[] seed = Utils.getBytesFromSocket(24,this.in,"seed"); 
-
-			Utils.sendToSocket(Utils.toBytesArray(pkString),this.out,"pk",Utils.addPointsAfter2Bytes);
-
-			byte[] hashSeed = Utils.hash(seed, 32);
-			byte[] signature = Utils.signature(hashSeed, skString);
-			Utils.sendToSocket(signature,this.out,"signature",Utils.addPointsAfter2Bytes);
-			
-			System.out.println("I have connected to the server");
+	public Connection(String hostname, int port, String pk, String sk) throws UnknownHostException, IOException, DecoderException, DataLengthException, CryptoException, InterruptedException, SignatureException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+		this.socket = new Socket(hostname, port); 			
+		this.in	    = new DataInputStream (new BufferedInputStream (socket.getInputStream ()));
+		this.out    = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+		byte[] seed = Utils.getSeed(in); 
+		Utils.sendPkToSocket(out,pk);
+		Utils.sendSignatureToSocket(out,seed,sk);
+		System.out.println("I have connected to the server");
 	}
 		
+	public boolean isActive() throws IOException { // ?
+		System.out.println("isActive?");
+		boolean isActive = (socket.getInputStream().read()!=-1);
+		System.out.println("isActive="+isActive);
+		return isActive;
+	}
+	
 	public DataOutputStream getOut() {
 		return out;
 	}
@@ -45,16 +45,9 @@ public class Connection {
 		return in;
 	}
 	
-	public void closeConnection(Socket socket) throws IOException {
+	public void close() throws IOException {
 		this.in.close();
 		this.out.close();
-		Runtime.getRuntime().addShutdownHook(new Thread(){public void run(){
-	    try {
-	        socket.close();
-	        System.out.println("The server is shut down!");
-	    } catch (IOException e) {  }
-		}});
+        this.socket.close();
 	}
-	
-	
 }

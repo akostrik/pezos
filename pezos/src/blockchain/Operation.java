@@ -2,15 +2,15 @@ package blockchain;
 import java.io.IOException;
 import java.util.Arrays;
 
-import tools.Utils;
+import pezos.Utils;
 
 public class Operation {
 	private byte[] operationAsBytes = null;
-	private short  tag       = 0;
-	private byte[] hash      = null;
-	private byte[] time      = null;
-	private byte[] pubkey    = null;
-	private byte[] signature = null;
+	private short  tag              = 0;
+	private byte[] hash             = null;
+	private byte[] time             = null;
+	private byte[] pubkey           = null;
+	private byte[] signature        = null;
 	
 	public Operation (byte[] operationAsBytes) {
 		this.operationAsBytes=operationAsBytes;
@@ -36,7 +36,7 @@ public class Operation {
 	}
 	
 	public String toString() {
-		return "OPERATION tag="      +tag+" : "+
+		return "OPERATION tag="      +tag+
 			            " hash="     +(hash!=null?Utils.toHexString(hash):null)+
 			            " time="     +(time!=null?Utils.toDateAsString(time):null)+
 			            " pk="       +Utils.toHexString(this.pubkey)+

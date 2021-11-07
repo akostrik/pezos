@@ -3,13 +3,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import tools.Utils;
+
+import pezos.Utils;
 
 public class ListOperations {
 	private ArrayList<Operation> listOperations = null;
+	private int level;
 	
-	public ListOperations(byte[] receivedMessage) {
+	public ListOperations(byte[] receivedMessage, int level) {
 		listOperations = new ArrayList<Operation>();
+		this.level=level;
 		extractFirstOperation(Arrays.copyOfRange(receivedMessage,4,receivedMessage.length));
 	}
 	
@@ -49,7 +52,7 @@ public class ListOperations {
 	}
 
 	public String toString() {
-		String result = "OPERATIONS : "+listOperations.size()+" operations of the block : \n";
+		String result = "OPERATIONS of the level "+level+", "+listOperations.size()+" operations : \n";
 		for(Operation operation : listOperations)
 			result += "  "+operation.toString()+"\n";
 		return result.substring(0,result.length()-1);
