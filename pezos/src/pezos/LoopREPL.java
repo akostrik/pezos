@@ -32,9 +32,12 @@ public class LoopREPL {
 			try {
 				oneIteration();
 			} catch (IOException e) {
-				System.out.println("IOException in main, may be a problem with the socket or the internet connection");
+				System.out.println("IOException in LoopREPL, may be a problem with the socket or the internet connection");
 				connection.close();
 				return;
+			}
+			catch(NoSuchElementException e) {
+		            	return;
 			}
 		}
 	}
