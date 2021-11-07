@@ -1,3 +1,3 @@
 # pezos
 A university project. 
-Verification of the blocks of a study blockchain.
+Verification of new blocks of a study blockchain.
