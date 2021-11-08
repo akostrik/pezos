@@ -30,7 +30,7 @@ public class Connection {
 		System.out.println("I have connected to the server");
 	}
 		
-	public boolean isActive() throws IOException { // ?
+	public boolean isActive() throws IOException { 
 		System.out.println("isActive?");
 		boolean isActive = (socket.getInputStream().read()!=-1);
 		System.out.println("isActive="+isActive);
