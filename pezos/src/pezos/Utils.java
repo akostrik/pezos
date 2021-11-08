@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -138,7 +137,7 @@ public class Utils {
 		return block;
 	}
 	
-	public static Block getPredecessor(int level,DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException {
+	public static Block getBlock(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException {
         byte[] msg = concatArrays(to2BytesArray(3),to4BytesArray(level));
         sendToSocket(msg,out,"tag 3 level "+level,addPointsAfter2and4Bytes);
         return getBlock(in);
@@ -208,19 +207,20 @@ public class Utils {
 		return signer.generateSignature();
 	}
 	
-	public static boolean verifySignature(Block block, State state, DataOutputStream out, DataInputStream in) throws InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, IOException, org.apache.commons.codec.DecoderException{
+	public static boolean signatureIsCorrect(byte[] signedData, byte[] signatureToVerify, byte[] pkAsBytes, DataOutputStream out, DataInputStream in) throws InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, IOException, org.apache.commons.codec.DecoderException{
+		// Edwards-curve Digital Signature Algorithm (EdDSA) 
+		// bonnes performances + en évitant les problèmes de sécurité qui sont apparus dans les autres schémas 
+		// résistance aux attaques comparable à celle des chiffrements de 128-bits de qualité
+		// неизвестны субэкспоненциальные алгоритмы дискретного логарифмирования
+		// EdDSA calcule ce nonce unique pour chaque signature =hachage(sk, data), plutôt que de dépendre d'un générateur de nombre aléatoire => réduit les risques d'une attaque sur le générateur de nombres aléatoires, sans l'éliminer complètement lorsque des nombres aléatoires sont utilisés pour la génération des clés
+		SubjectPublicKeyInfo pkInfo               = new SubjectPublicKeyInfo(new AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519),pkAsBytes);
+		X509EncodedKeySpec   keySpec              = new X509EncodedKeySpec(pkInfo.getEncoded());
 		BouncyCastleProvider bouncyCastleProvider = new BouncyCastleProvider();
-		byte[] hashBlock = hash(block.encodeToBytesWithoutSignature(),32);
-		Signature signature2 = Signature.getInstance("Ed25519",bouncyCastleProvider);
-		
-		byte[] pubKeyBytes = state.getDictatorPk();
-		SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(new AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), pubKeyBytes);
-		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(pubKeyInfo.getEncoded());
-		KeyFactory keyFactory = KeyFactory.getInstance("Ed25519",bouncyCastleProvider);
-		PublicKey pk = keyFactory.generatePublic(keySpec);
-		signature2.initVerify(pk);
-		signature2.update(hashBlock);
-		return signature2.verify(block.getSignature());
+		Signature            signatureToVerify2   = Signature.getInstance("Ed25519",bouncyCastleProvider);
+		PublicKey            pkAsPublicKey        = KeyFactory.getInstance("Ed25519",bouncyCastleProvider).generatePublic(keySpec);
+		signatureToVerify2.initVerify(pkAsPublicKey);
+		signatureToVerify2.update(signedData);
+		return signatureToVerify2.verify(signatureToVerify);
 	 }
 	
 	///////////// CONVERTERS
