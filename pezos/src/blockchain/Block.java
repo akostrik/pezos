@@ -85,7 +85,7 @@ public class Block {
 		}
 
 		System.out.print("I verify predecessor    ");
-		Block predecessor               = Utils.getPredecessor(level-1, out, in);
+		Block predecessor               = Utils.getBlock(level-1, out, in);
 		if(!Arrays.equals(this.predecessor, predecessor.getHash())){
 			System.out.print(" ERROR -> ");
 			byte[] operationContent = Utils.concatArrays(Utils.to2BytesArray(1),predecessor.getHash());
@@ -107,7 +107,8 @@ public class Block {
 		}
 
 		System.out.print("I verify signature      ");
-		if(!Utils.verifySignature(this,state,out,in)) {
+		byte[] hashBlockWithoutSignature = Utils.hash(this.encodeToBytesWithoutSignature(),32);
+		if(!Utils.signatureIsCorrect(hashBlockWithoutSignature,this.signature,state.getDictatorPk(),out,in)) {
 			System.out.print(" ERROR -> ");
 			byte[] operationContent = Utils.to2BytesArray(5);
 		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
