@@ -18,14 +18,13 @@ import blockchain.Block;
 import blockchain.State;
 public class LoopAuto {
 
-	public LoopAuto(Connection connection, String pk, String sk
-			, int secondesBetweenBroadcastes) throws DecoderException, InterruptedException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, CryptoException {
+	public LoopAuto(Connection connection, String pk, String sk, int secondesBetweenBroadcastes) throws DecoderException, InterruptedException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, CryptoException {
 		DataOutputStream out                   = connection.getOut();
 		DataInputStream  in                    = connection.getIn();
 		Block            previousBroadcast     = null; 
 		Block            broadcastedBlock      = null;
 		State            state                 = null;
-		boolean          firstIteration = true;
+		boolean          firstIteration        = true;
 
 		while(true) {
 			System.out.println("--------------------------- ITERATION "+Utils.toDateAsString(Utils.currentDateTimeAsSeconds()));
