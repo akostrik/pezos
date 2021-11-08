@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.DecoderException;
@@ -17,7 +18,8 @@ import blockchain.Block;
 import blockchain.State;
 public class LoopAuto {
 
-	public LoopAuto(Connection connection, String pkString, String skString, int secondesBetweenBroadcastes) throws IOException, DecoderException, InterruptedException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, CryptoException {
+	public LoopAuto(Connection connection, String pk, String sk
+			, int secondesBetweenBroadcastes) throws DecoderException, InterruptedException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, CryptoException {
 		DataOutputStream out                   = connection.getOut();
 		DataInputStream  in                    = connection.getIn();
 		Block            previousBroadcast     = null; 
@@ -35,13 +37,12 @@ public class LoopAuto {
 					continue;
 				}
 				state = Utils.getState(broadcastedBlock.getLevel(),out,in);
-				System.out.println("My account : "+state.getAccount("b8b606dba2410e1f3c3486e0d548a3053ba3f907860fada6fab2835fb27b3f21").toString());
+				System.out.println("My account : "+state.getAccount(pk).toString());
 				System.out.println(broadcastedBlock);
-				broadcastedBlock.verifyErrors(out,in,pkString,skString,state);
-			} catch (IOException e) {
-				System.out.println("IOException in LoopAuto, may be a problem with the socket or the internet connection");
-				connection.close();
-				return;
+				broadcastedBlock.verifyErrors(out,in,pk,sk,state);
+			} catch (IOException | NoSuchElementException e) {
+				System.out.println("IOException or | NoSuchElementException, may be a problem with the socket or the internet connection");
+				break;
 			}
 
 			firstIteration = false;
