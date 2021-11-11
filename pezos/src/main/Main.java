@@ -1,4 +1,4 @@
-package pezos;
+package main;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;

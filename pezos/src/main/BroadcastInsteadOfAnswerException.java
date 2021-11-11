@@ -1,4 +1,4 @@
-package pezos;
+package main;
 
 @SuppressWarnings("serial")
 public class BroadcastInsteadOfAnswerException extends Exception{

@@ -1,7 +1,7 @@
 package blockchain;
 import java.util.Arrays;
 
-import pezos.Utils;
+import main.Utils;
 
 public class Account {
 	private byte[] userPubkey;

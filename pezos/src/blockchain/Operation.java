@@ -2,7 +2,7 @@ package blockchain;
 import java.io.IOException;
 import java.util.Arrays;
 
-import pezos.Utils;
+import main.Utils;
 
 public class Operation {
 	private byte[] operationAsBytes = null;

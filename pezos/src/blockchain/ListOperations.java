@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import pezos.Utils;
+import main.Utils;
 
 public class ListOperations {
 	private ArrayList<Operation> listOperations = null;

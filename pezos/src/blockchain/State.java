@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 import org.apache.commons.codec.DecoderException;
 
-import pezos.Utils;
+import main.Utils;
 
 public class State {
 

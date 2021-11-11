@@ -3,8 +3,8 @@ import java.util.Arrays;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 
-import pezos.BroadcastInsteadOfAnswerException;
-import pezos.Utils;
+import main.BroadcastInsteadOfAnswerException;
+import main.Utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
