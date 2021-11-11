@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="pezos/src"/>
+	<classpathentry kind="lib" path="pezos/jars/bcprov-jdk15on-1.69.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/checker-qual-3.8.0.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/commons-codec-1.15.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/error_prone_annotations-2.5.1.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/failureaccess-1.0.1.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/guava-30.1.1-jre.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/j2objc-annotations-1.3.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/jsr305-3.0.2.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
+	<classpathentry kind="lib" path="pezos/jars/ove.blake2b-alpha.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

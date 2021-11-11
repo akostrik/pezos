@@ -16,11 +16,9 @@ public class State {
 	private byte[] nbBytesInNextSequence;
 	private byte[] accountsAsBytes;
 	private byte[] stateAsBytes;
-	private byte[] hashCurrentState;
 	private ArrayList<Account> listAccounts;
-	private int    level;
 	
-	public State(byte[] receivedMessage, int level) throws IOException {
+	public State(byte[] receivedMessage) throws IOException {
 		listAccounts = new ArrayList<Account>();
 		this.stateAsBytes          = Arrays.copyOfRange(receivedMessage,2,receivedMessage.length);
 		this.dictateurPk           = Arrays.copyOfRange(receivedMessage,2,34);
@@ -28,10 +26,8 @@ public class State {
 		this.nbBytesInNextSequence = Arrays.copyOfRange(receivedMessage,42,46);
 		this.accountsAsBytes       = Arrays.copyOfRange(receivedMessage,46,receivedMessage.length);
 		extractAccounts(accountsAsBytes);
-        this.hashCurrentState = Utils.hash(this.encodeToBytes(),32);
-        this.level=level;
 	}
-	
+
 	public byte[] encodeToBytes() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		outputStream.write(dictateurPk);
@@ -80,11 +76,9 @@ public class State {
 		for(Account account : listAccounts)
 			accounts +="    "+account.toString()+"\n";
 		return "STATE :"+
-				"\n  level                 = "+level+
 				"\n  dictateurPubkey       = "+Utils.toHexString(dictateurPk)+
   			    "\n  predecessor_timestamp = "+(Utils.toDateAsString(Utils.toLong(predecessor_timestamp))+" (or "+Utils.toLong(predecessor_timestamp)+" seconds, or "+Utils.toHexString(predecessor_timestamp)+" as Hex)")+
 				"\n  nbBytesInNextSequence = "+Utils.toInt(nbBytesInNextSequence)+" (or "+Utils.toHexString(nbBytesInNextSequence)+" as Hex) ("+(Utils.toInt(nbBytesInNextSequence)/52)+" accounts)"+
-			    "\n  hash of this state    = "+Utils.toHexString(hashCurrentState)+
-				"\n  accounts :\n"+accounts;
+				"\n  account(s) :\n"+accounts;
 	}
 }

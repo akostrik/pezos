@@ -3,6 +3,7 @@ import java.util.Arrays;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 
+import pezos.BroadcastInsteadOfAnswerException;
 import pezos.Utils;
 
 import java.io.ByteArrayOutputStream;
@@ -24,7 +25,7 @@ public class Block {
 	private byte[] hashCurrentBlock;
 	
 	public Block(byte[] receivedMessage) throws IOException { 
-	    this.level          = Utils.toInt(Arrays.copyOfRange(receivedMessage,2,6)); 
+		this.level          = Utils.toInt(Arrays.copyOfRange(receivedMessage,2,6)); 
         this.predecessor    = Arrays.copyOfRange(receivedMessage,6,38); 
         this.timestamp      = Arrays.copyOfRange(receivedMessage,38,46);
         this.operationsHash = Arrays.copyOfRange(receivedMessage,46,78);
@@ -54,79 +55,54 @@ public class Block {
 		return outputStream.toByteArray();
 	}
 	
-	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException {
-		verifyErrors(out,in,pk,sk,null);
-	}
-	
-	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk, State state) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException {
-		System.out.print("I verify state hash     ");
-		if(state==null)
-			state = Utils.getState(level,out,in);
+	public void verifyErrors(DataOutputStream out, DataInputStream in, String pk, String sk, State state, int secondesBetweenBroadcastes) throws IOException, org.apache.commons.codec.DecoderException, InvalidKeyException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, DataLengthException, CryptoException, BroadcastInsteadOfAnswerException {
+		byte[] operationCorrection = null;
+		
+		System.out.println("I verify errors of the "+this);
+
+		System.out.println("I verify state hash");
 		if(!Arrays.equals(this.stateHash,state.hashTheState())){
-			System.out.print(" ERROR -> ");
-			byte[] operationContent = Utils.concatArrays(Utils.to2BytesArray(4),state.hashTheState());
-		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
-		}
-		else {
-			System.out.println();
+			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(4),state.hashTheState());
 		}
 
-		System.out.print("I verify timestamp      ");
+		System.out.println("I verify timestamp      ");
 		byte[] correctPredecessorTimestamp = state.getPredecessorTimestamp();
 		long differenceTimestampsInSeconds = Utils.toLong(timestamp)-Utils.toLong(correctPredecessorTimestamp);
-		if(differenceTimestampsInSeconds < 600){
-			System.out.print(" ERROR -> ");
-			long correctedTimestamp = Utils.toLong(correctPredecessorTimestamp) + 600;
-			byte[] operationContent = Utils.concatArrays(Utils.to2BytesArray(2),Utils.to8BytesArray(correctedTimestamp));
-		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
-		}
-		else {
-			System.out.println();
+		if(differenceTimestampsInSeconds < secondesBetweenBroadcastes){
+			long correctedTimestamp = Utils.toLong(correctPredecessorTimestamp) + secondesBetweenBroadcastes;
+			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(2),Utils.to8BytesArray(correctedTimestamp));
 		}
 
-		System.out.print("I verify predecessor    ");
-		Block predecessor               = Utils.getBlock(level-1, out, in);
-		if(!Arrays.equals(this.predecessor, predecessor.getHash())){
-			System.out.print(" ERROR -> ");
-			byte[] operationContent = Utils.concatArrays(Utils.to2BytesArray(1),predecessor.getHash());
-		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
-		}
-		else {
-			System.out.println();
+		System.out.println("I verify predecessor    ");
+		Block correctPredecessor               = new Block(Utils.getBlockOfLevel(level-1, out, in));
+		if(!Arrays.equals(this.predecessor, correctPredecessor.getHash())){
+			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(1),correctPredecessor.getHash());
 		}
 
-		System.out.print("I verify operations hash");
-	    ListOperations operations = Utils.getListOperations(level,out,in);
-		if(!Arrays.equals(operationsHash, operations.getHash())){
-			System.out.print(" ERROR -> ");
-			byte[] operationContent = Utils.concatArrays(Utils.to2BytesArray(3),operations.getHash());
-		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
-		}
-		else {
-			System.out.println();
+		System.out.println("I verify operations hash");
+	    ListOperations correctOperations = new ListOperations(Utils.getListOperations(level,out,in));
+		if(!Arrays.equals(operationsHash, correctOperations.getHash())){
+			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(3),correctOperations.getHash());
 		}
 
-		System.out.print("I verify signature      ");
+		System.out.println("I verify signature      ");
 		byte[] hashBlockWithoutSignature = Utils.hash(this.encodeToBytesWithoutSignature(),32);
 		if(!Utils.signatureIsCorrect(hashBlockWithoutSignature,this.signature,state.getDictatorPk(),out,in)) {
-			System.out.print(" ERROR -> ");
-			byte[] operationContent = Utils.to2BytesArray(5);
-		    Utils.sendInjectOperationTag9(operationContent, pk, sk, out);
+			operationCorrection = Utils.to2BytesArray(5);
 		}
-		else {
-			System.out.println();
-		}
+		
+		if(operationCorrection!=null)
+		    Utils.sendInjectOperation(operationCorrection, pk, sk, out);
 	}
 
 	public String toString() {
 			return "BLOCK :"+
-				 "\n  level:             "+level+ " (or "+Utils.toStringOfHex(level) +" as Hex)"+
+				 "\n  level:             "+level+ " (or "+Utils.toHexString(level) +" as Hex)"+
 				 "\n  predecessor:       "+Utils.toHexString(predecessor)+
 				 "\n  timestamp:         "+(Utils.toDateAsString(Utils.toLong(timestamp))+" (or "+Utils.toLong(timestamp)+" seconds, or "+Utils.toHexString(timestamp)+" as Hex)")+
 				 "\n  operations hash:   "+Utils.toHexString(operationsHash)+
 				 "\n  state hash:        "+Utils.toHexString(stateHash)+
-				 "\n  signature:         "+Utils.toHexString(signature)+
-				 "\n  hash of the block: "+Utils.toHexString(hashCurrentBlock);
+				 "\n  signature:         "+Utils.toHexString(signature);
 	}
 
 	public long getTimeStamp() {
@@ -144,4 +120,4 @@ public class Block {
 	public int getLevel() {
 		return this.level;
 	}
-}
+	}

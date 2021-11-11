@@ -16,11 +16,16 @@ public class ListOperations {
 		extractFirstOperation(Arrays.copyOfRange(receivedMessage,4,receivedMessage.length));
 	}
 	
+	public ListOperations(byte[] receivedMessage) {
+		this(receivedMessage,0);
+		//System.out.println("conctructeur ListOperations "+receivedMessage);
+	}
+
 	public void extractFirstOperation(byte[] operationsAsBytes) {
 		if(operationsAsBytes.length<1)
 			return;
 		
-		short tag = Utils.toShort(Arrays.copyOfRange(operationsAsBytes,0,2));
+		int tag = Utils.toInt(Arrays.copyOfRange(operationsAsBytes,0,2));
 		int nextPosition=0;
 		if (tag==1 || tag==3 || tag==4 ) {
 			nextPosition=130;
@@ -52,7 +57,7 @@ public class ListOperations {
 	}
 
 	public String toString() {
-		String result = "OPERATIONS of the level "+level+", "+listOperations.size()+" operations : \n";
+		String result = "LISTE OPERATIONS "+(level==0?"":"of the level "+level)+", "+listOperations.size()+" operation(s) : \n";
 		for(Operation operation : listOperations)
 			result += "  "+operation.toString()+"\n";
 		return result.substring(0,result.length()-1);

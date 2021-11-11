@@ -4,9 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,168 +25,125 @@ import java.security.spec.X509EncodedKeySpec;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import blockchain.Block;
-import blockchain.ListOperations;
-import blockchain.State;
-
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.crypto.*;
 
 public class Utils {
-	public static ArrayList<Integer> addPointsAfter2Bytes;
-	public static ArrayList<Integer> addPointsAfter2and4Bytes;
-	public static ArrayList<Integer> addPointsToBlock;
-	
-	public Utils() {
-		addPointsAfter2Bytes = new ArrayList<Integer>();
-		addPointsAfter2Bytes.add(2);
-		addPointsAfter2and4Bytes = new ArrayList<Integer>();
-		addPointsAfter2and4Bytes.add(2);
-		addPointsAfter2and4Bytes.add(4);
-		addPointsToBlock = new ArrayList<Integer>();
-		addPointsToBlock.add(2);
-		addPointsToBlock.add(6);
-		addPointsToBlock.add(38);
-		addPointsToBlock.add(46);
-		addPointsToBlock.add(78);
-		addPointsToBlock.add(110);
-	}
-	
 	/////////////// SEND TO SOCKET 
 
-	public static void sendToSocket(byte[] bytesArrayToSend, DataOutputStream out, String comment, ArrayList<Integer> positionsOfPoints) throws IOException, DecoderException {
+	public static void sendBytesToSocket(byte[] bytesArrayToSend, DataOutputStream out) throws IOException, DecoderException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		outputStream.write(to2BytesArray(bytesArrayToSend.length));
 		outputStream.write(bytesArrayToSend);
 		bytesArrayToSend = outputStream.toByteArray(); 
 		out.write(bytesArrayToSend); 
 		out.flush(); // the last of the data gets out to the file
-		// System.out.println(whatIHaveSent(bytesArrayToSend, comment, positionsOfPoints));
+		//System.out.println("*** SOCKET sent     : "+toHexString(bytesArrayToSend));
+	}
+
+	public static void sendInjectOperation(byte[] content, String pk, String sk, DataOutputStream out) throws DataLengthException, org.apache.commons.codec.DecoderException, CryptoException, IOException{
+		byte[] pkBytes   = toBytesArray(pk);
+		byte[] signature = signature(hash(concatArrays(content, pkBytes),32), sk);
+		byte[] message   = concatArrays(to2BytesArray(9),content,pkBytes,signature);
+		sendBytesToSocket(message, out);
+        System.out.println("  ERROR -> INJECT OPERATION "+Utils.toHexString(Arrays.copyOfRange((message),0,2))+"."+Utils.toHexString(Arrays.copyOfRange((message),2,4))+"."+Utils.toHexString(Arrays.copyOfRange((message),4,message.length)));
 	}
 
 	public static void sendPkToSocket(DataOutputStream out,String pk) throws IOException, DecoderException {
-		sendToSocket(toBytesArray(pk),out,"pk",addPointsAfter2Bytes);
+		sendBytesToSocket(toBytesArray(pk),out);
 	}
 
 	public static void sendSignatureToSocket(DataOutputStream out, byte[] seed, String sk) throws DataLengthException, DecoderException, CryptoException, IOException {
 		byte[] hashSeed = hash(seed,32);
 		byte[] signature = signature(hashSeed,sk);
-		Utils.sendToSocket(signature,out,"signature",addPointsAfter2Bytes);
-	}
-
-
-	public static void sendInjectOperationTag9(byte[] content, String pk, String sk, DataOutputStream out) throws DataLengthException, org.apache.commons.codec.DecoderException, CryptoException, IOException{
-		byte[] pkBytes   = toBytesArray(pk);
-		byte[] signature = signature(hash(concatArrays(content, pkBytes),32), sk);
-		byte[] message   = concatArrays(to2BytesArray(9),content,pkBytes,signature);
-		sendToSocket(message, out,"",addPointsAfter2and4Bytes);
-        System.out.println("INJECT OPERATION "+Utils.toHexString(Arrays.copyOfRange((message),0,2))+"."+Utils.toHexString(Arrays.copyOfRange((message),2,4))+"."+Utils.toHexString(Arrays.copyOfRange((message),4,message.length)));
-	}
-
-	public static String whatIHaveSent(byte[] bytesArrayToSend, String comment, ArrayList<Integer> positionsOfPoints) {
-		String result = "*** SOCKET : "+(comment==""?"":comment+" ")+"sent : ";
-		for(int pos=0;pos<bytesArrayToSend.length;pos++) {
-			result += toHexString(Arrays.copyOfRange(bytesArrayToSend,pos,pos+1));
-			if(positionsOfPoints!=null && positionsOfPoints.contains(pos+1)) 
-				result+=".";
-			}
-		return result;
+		Utils.sendBytesToSocket(signature,out);
 	}
 
 	/////////////// GET FROM TO SOCKET 
 
-	public static byte[] getBytes(int nbBytesWanted, DataInputStream in, String comment, ArrayList<Integer> positionsOfPoints) throws IOException {
+	public static byte[] getBytesFromSocket(int nbBytesWanted, DataInputStream in) throws IOException {
 		byte[] receivedMessage = new byte[nbBytesWanted];
-		int nbBytesReceived=0;
-		nbBytesReceived = in.read(receivedMessage,0,nbBytesWanted); // if no wifi, blocked for 15 minutes then IOExcetion // blocks until data available / EOF / exception 
-		// System.out.println(whatIHaveReceived(receivedMessage, nbBytesReceived, comment, positionsOfPoints));
+		in.read(receivedMessage,0,nbBytesWanted); // if no wifi, blocked for 15 minutes then IOExcetion // blocks until data available / EOF / exception 
+		//System.out.println("*** SOCKET received : "+toHexString(receivedMessage));
+		return receivedMessage;
+	}
+	
+	public static byte[] getNextObjectFromSocket(int expectedTag, DataInputStream in) throws IOException, BroadcastInsteadOfAnswerException {
+		int tag = toInt(getBytesFromSocket(2,in));
+
+		byte[] receivedMessage = null;
+
+		if(tag==2 || tag ==4) {
+			receivedMessage = concatArrays(to2BytesArray(tag),getBytesFromSocket(172,in));
+		}
+		else if(tag==6) {
+	        byte[] nbBytesToRead = getBytesFromSocket(2,in);
+			byte[] receivedOperations = getBytesFromSocket(toInt(nbBytesToRead),in);
+			receivedMessage = concatArrays(to2BytesArray(tag),nbBytesToRead,receivedOperations);			
+		}
+		else if(tag==8) { 
+			byte[] dictatorPk           = getBytesFromSocket(32,in);
+			byte[] predTimestamp        = getBytesFromSocket(8,in);
+			byte[] nbBytesNextSequence  = getBytesFromSocket(4,in);
+	        byte[] accounts             = getBytesFromSocket(toInt(nbBytesNextSequence),in);
+	        receivedMessage = concatArrays(to2BytesArray(tag),dictatorPk,predTimestamp,nbBytesNextSequence,accounts);
+		}
+		else {
+			throw new IOException("Not expected tag "+tag + " instead of "+expectedTag);
+		}
+
+		if(tag!=2 && tag!=expectedTag)
+			throw new IOException("Not expected tag "+tag + " instead of "+expectedTag);
+
+		if(tag==2 && tag!=expectedTag)
+			throw new BroadcastInsteadOfAnswerException("I have got broadcast instead of tag "+tag,receivedMessage);
+		
+		// System.out.println(whatIHaveReceived(receivedMessage, nbBytesReceived));
 		return receivedMessage;
 	}	
 	
-	public static String whatIHaveReceived(byte[] receivedMessage, int nbBytesReceived, String comment, ArrayList<Integer> positionsOfPoints) {
-		String result = "*** SOCKET : "+(comment==""?"":comment+" ")+"received : "+nbBytesReceived+" bytes : ";
-		for(int pos=0;pos<receivedMessage.length;pos++) {
-			result += toHexString(Arrays.copyOfRange(receivedMessage,pos,pos+1));
-			if(positionsOfPoints!=null && positionsOfPoints.contains(pos+1)) 
-				result+=".";
-		}
-		return result;
-	}
-
-	public static byte[] getBytesFromSocket(int nbBytesWanted, DataInputStream in, String comment) throws IOException {
-		return getBytes(nbBytesWanted,in,comment,null);
+	public static byte[] getBlockOfLevel(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException, BroadcastInsteadOfAnswerException {
+        sendBytesToSocket(concatArrays(to2BytesArray(3),to4BytesArray(level)),out);
+        return getNextObjectFromSocket(4,in);
 	}
 	
-	public static Block getBlock(DataInputStream  in) throws IOException, org.apache.commons.codec.DecoderException {
-		byte[] receivedMessage = getBytes(174,in,"block",addPointsToBlock);
-		byte[] receivedTag = Arrays.copyOfRange(receivedMessage,0,2);
-		if(toShort(receivedTag)!=2 && toShort(receivedTag)!=4) {
-			throw new IOException("I waited for tag 2 or 4 from socket, I received tag " +toShort(receivedTag));
-		}
-		return new Block(receivedMessage);
-	}
-
-	public static Block getCurrentHead(DataOutputStream out, DataInputStream  in) throws IOException, org.apache.commons.codec.DecoderException {
-		sendToSocket(to2BytesArray(1),out,"tag 1",addPointsAfter2Bytes);
-		Block block = getBlock(in);
-		return block;
+	public static byte[] getCurrentHead(DataOutputStream out, DataInputStream  in) throws IOException, org.apache.commons.codec.DecoderException {
+		// ignore tags 4,6,8
+		sendBytesToSocket(to2BytesArray(1),out);
+		return getBroadcast(in);
 	}
 	
-	public static Block getBlock(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException {
-        byte[] msg = concatArrays(to2BytesArray(3),to4BytesArray(level));
-        sendToSocket(msg,out,"tag 3 level "+level,addPointsAfter2and4Bytes);
-        return getBlock(in);
+	public static byte[] getBroadcast(DataInputStream  in) throws IOException, org.apache.commons.codec.DecoderException {
+		// ignore tags 4,6,8
+        byte[] receivedMessage = null;
+        while(true) {
+        	try {
+        	receivedMessage = getNextObjectFromSocket(2,in);
+        	} catch (BroadcastInsteadOfAnswerException e) {
+        		continue;
+        	}
+        	break;
+        }
+        return receivedMessage;
+	}
+
+	public static byte[] getListOperations(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException, BroadcastInsteadOfAnswerException {
+        sendBytesToSocket(concatArrays(to2BytesArray(5),to4BytesArray(level)),out);
+        byte[] result = getNextObjectFromSocket(6,in);
+        return result;
 	}
 	
-	public static ListOperations getListOperations(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException {
-        byte[] msg = concatArrays(to2BytesArray(5),to4BytesArray(level));
-        sendToSocket(msg,out,"tag 5 level "+level,addPointsAfter2and4Bytes);
-
-        byte[] receivedTag       = getBytesFromSocket(2,in,"tag");
-		if(toShort(receivedTag)!=6) {
-			throw new IOException("I waited for tag 6 from socket, I received tag " +toShort(receivedTag));
-		}
-        byte[] nbBytesToRead     = getBytesFromSocket(2,in,"nbBytesToRead");
-        byte[] operationsAsBytes = getBytesFromSocket(toShort(nbBytesToRead),in,"operations"); 
-        byte[] receivedMessage   = concatArrays(receivedTag,nbBytesToRead,operationsAsBytes);
-
-        return new ListOperations(receivedMessage, level);
+	public static byte[] getState(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException, BroadcastInsteadOfAnswerException {
+        sendBytesToSocket(concatArrays(to2BytesArray(7),to4BytesArray(level)),out);
+        return getNextObjectFromSocket(8,in);
 	}
-	
-	public static State getState(int level, DataOutputStream out, DataInputStream  in) throws org.apache.commons.codec.DecoderException, IOException {
-        byte[] msg = concatArrays(to2BytesArray(7),to4BytesArray(level));
-        sendToSocket(msg,out,"tag 7 level "+level,addPointsAfter2and4Bytes);
 
-        byte[] receivedTag           = getBytesFromSocket(2,in,"tag");
-		if(toShort(receivedTag)!=8) {
-			throw new IOException("I waited for tag 8 from socket, I received tag " +toShort(receivedTag));
-		}       
-
-		byte[] dictatorPk           = getBytesFromSocket(32,in,"dict pk");
-		byte[] predTimestamp        = getBytesFromSocket(8,in,"pred timestamp");
-		byte[] nbBytesNextSequence  = getBytesFromSocket(4,in,"nb bytes next seq");
-        byte[] accounts             = getBytesFromSocket(toInt(nbBytesNextSequence),in,"accounts");
-        byte[] receivedMessage      = concatArrays(receivedTag,dictatorPk,predTimestamp,nbBytesNextSequence,accounts);
-
-        String toPrint = toHexString(receivedTag)+"."+toHexString(dictatorPk)+"."+toDateAsString(predTimestamp)+"."+toHexString(nbBytesNextSequence)+"."+toHexString(accounts);
-        //System.out.println("tag7 answer = " + toPrint + " = "+(new State(receivedMessage)).toString());
-        return new State(receivedMessage, level);
-	}
-	
 	public static byte[] getSeed(DataInputStream  in) throws IOException {
-		return Utils.getBytesFromSocket(24,in,"seed"); 
-	}
-
-	public static void waitForTheNextBroadcast(int secondesBetweenBroadcastes, State state) throws InterruptedException {
-		long whenReceivedLastBroadcast = Utils.currentDateTimeAsSeconds();
-		long correctPredecessorTimestamp = Utils.toLong(state.getPredecessorTimestamp());
-		long secondsAfterPreviousBroadcast = whenReceivedLastBroadcast-correctPredecessorTimestamp;
-		long secondsToWait = secondesBetweenBroadcastes*2 - secondsAfterPreviousBroadcast + 2;
-		System.out.println("I am waiting "+secondsToWait+" seconds, I will fetch the next broadcast at "+Utils.toDateAsString(whenReceivedLastBroadcast+secondsToWait));
-		TimeUnit.SECONDS.sleep(secondsToWait);			
+		byte[] receivedMessage = new byte[24];
+		in.read(receivedMessage,0,24);
+		return receivedMessage;	
 	}
 
 	/////// CRYPTO
@@ -248,11 +203,11 @@ public class Utils {
 	}
 	
 	public static int toInt(byte[] bytes) {
-	    return bytes[0] << 24 | (bytes[1] & 0xFF) << 16 | (bytes[2] & 0xFF) << 8 | (bytes[3] & 0xFF);
-	}
-
-	public static short toShort(byte[] bytes) {
-	    return ByteBuffer.wrap(bytes).getShort();
+		if(bytes.length==4)
+			return bytes[0] << 24 | (bytes[1] & 0xFF) << 16 | (bytes[2] & 0xFF) << 8 | (bytes[3] & 0xFF);
+		if(bytes.length==2)
+			return (int)ByteBuffer.wrap(bytes).getShort();
+		return 0;
 	}
 
 	public static long toLong(byte[] bytes) {
@@ -283,7 +238,7 @@ public class Utils {
 		return convertedToBytes.array();
 	}
 	
-	public static String toStringOfHex(int n) {
+	public static String toHexString(int n) {
 		return toHexString(to4BytesArray(n));
 	}
 	
