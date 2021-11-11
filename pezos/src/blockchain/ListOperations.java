@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import main.Utils;
+import utils.Utils;
 
 public class ListOperations {
 	private ArrayList<Operation> listOperations = null;

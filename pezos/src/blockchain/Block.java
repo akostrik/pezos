@@ -3,8 +3,8 @@ import java.util.Arrays;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 
-import main.BroadcastInsteadOfAnswerException;
-import main.Utils;
+import utils.BroadcastInsteadOfAnswerException;
+import utils.Utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

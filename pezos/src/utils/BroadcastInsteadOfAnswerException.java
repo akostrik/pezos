@@ -1,4 +1,4 @@
-package main;
+package utils;
 
 @SuppressWarnings("serial")
 public class BroadcastInsteadOfAnswerException extends Exception{

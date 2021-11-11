@@ -16,6 +16,8 @@ import org.bouncycastle.crypto.DataLengthException;
 import blockchain.Block;
 import blockchain.ListOperations;
 import blockchain.State;
+import utils.BroadcastInsteadOfAnswerException;
+import utils.Utils;
 
 public class LoopREPL {
 	DataOutputStream out     = null;

@@ -2,7 +2,7 @@ package blockchain;
 import java.io.IOException;
 import java.util.Arrays;
 
-import main.Utils;
+import utils.Utils;
 
 public class Operation {
 	private byte[] operationAsBytes = null;

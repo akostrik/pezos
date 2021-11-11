@@ -14,6 +14,8 @@ import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 import blockchain.Block;
 import blockchain.State;
+import utils.BroadcastInsteadOfAnswerException;
+import utils.Utils;
 public class LoopAuto {
 
 	public LoopAuto(Connection connection, String pk, String sk, int secondsBetweenBroadcastes) throws DecoderException, InterruptedException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, NoSuchAlgorithmException, CryptoException, IOException  {

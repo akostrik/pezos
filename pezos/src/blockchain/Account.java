@@ -1,7 +1,7 @@
 package blockchain;
 import java.util.Arrays;
 
-import main.Utils;
+import utils.Utils;
 
 public class Account {
 	private byte[] userPubkey;

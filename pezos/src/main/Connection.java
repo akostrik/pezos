@@ -14,6 +14,8 @@ import org.apache.commons.codec.DecoderException;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 
+import utils.Utils;
+
 public class Connection {
 	
 	private DataOutputStream out    = null;
