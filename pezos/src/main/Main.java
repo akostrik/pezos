@@ -19,7 +19,7 @@ public class Main {
 		final int    port                      = 1337;
 		final String pk                        = "b8b606dba2410e1f3c3486e0d548a3053ba3f907860fada6fab2835fb27b3f21"; // public
 		final String sk                        = "1f06949f1278fcbc0590991180d5b567d240c0b0576d1d34cad66db49d4eea4a"; // secret
-		final int    secondsBetweenBroadcastes = 600;
+		final int    secondsBetweenBroadcastes = 10;
 		Connection   connection                = null;
 		Scanner      scanner                   = new Scanner(System.in);
 

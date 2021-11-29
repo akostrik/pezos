@@ -63,6 +63,7 @@ public class Block {
 		System.out.println("I verify state hash");
 		if(!Arrays.equals(this.stateHash,state.hashTheState())){
 			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(4),state.hashTheState());
+			System.out.println("ERROR");
 		}
 
 		System.out.println("I verify timestamp      ");
@@ -71,24 +72,28 @@ public class Block {
 		if(differenceTimestampsInSeconds < secondesBetweenBroadcastes){
 			long correctedTimestamp = Utils.toLong(correctPredecessorTimestamp) + secondesBetweenBroadcastes;
 			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(2),Utils.to8BytesArray(correctedTimestamp));
+			System.out.println("ERROR");
 		}
 
 		System.out.println("I verify predecessor    ");
 		Block correctPredecessor               = new Block(Utils.getBlockOfLevel(level-1, out, in));
 		if(!Arrays.equals(this.predecessor, correctPredecessor.getHash())){
 			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(1),correctPredecessor.getHash());
+			System.out.println("ERROR");
 		}
 
 		System.out.println("I verify operations hash");
 	    ListOperations correctOperations = new ListOperations(Utils.getListOperations(level,out,in));
 		if(!Arrays.equals(operationsHash, correctOperations.getHash())){
 			operationCorrection = Utils.concatArrays(Utils.to2BytesArray(3),correctOperations.getHash());
+			System.out.println("ERROR");
 		}
 
 		System.out.println("I verify signature      ");
 		byte[] hashBlockWithoutSignature = Utils.hash(this.encodeToBytesWithoutSignature(),32);
 		if(!Utils.signatureIsCorrect(hashBlockWithoutSignature,this.signature,state.getDictatorPk(),out,in)) {
 			operationCorrection = Utils.to2BytesArray(5);
+			System.out.println("ERROR");
 		}
 		
 		if(operationCorrection!=null)
